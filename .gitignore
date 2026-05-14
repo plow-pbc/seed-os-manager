@@ -1,0 +1,19 @@
+# Swift / SwiftPM
+.build/
+.swiftpm/
+Package.resolved
+*.xcodeproj/
+
+# OS / editor cruft
+.DS_Store
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Build outputs (assembled bundles + dmgs are produced into dist/)
+dist/
+
+# Local dev secrets — never commit
+*.p8
+notarize.env
