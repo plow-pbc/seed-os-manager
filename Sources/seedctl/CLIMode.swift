@@ -120,9 +120,22 @@ enum CLIMode {
     }
 }
 
-// Real spawner used in production. Implementation lands in Task C.3.
 struct OpenSpawner: Spawner {
     func spawn(reqDir: URL) throws -> SpawnResult {
-        fatalError("OpenSpawner.spawn not yet implemented")
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        proc.arguments = ["-W", "-a", "Seed OS Manager", "--args", "osa", "--req", reqDir.path]
+        let errPipe = Pipe()
+        proc.standardError = errPipe
+        try proc.run()
+        proc.waitUntilExit()
+        let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
+        let errStr = String(data: errData, encoding: .utf8) ?? ""
+        if proc.terminationStatus != 0 {
+            // /usr/bin/open returned non-zero — almost always means the .app
+            // is missing, quarantined, or the bundle name doesn't resolve.
+            return SpawnResult(exitCode: 3, stdout: "", stderr: "open failed: \(errStr)")
+        }
+        return SpawnResult(exitCode: 0, stdout: "", stderr: errStr)
     }
 }
