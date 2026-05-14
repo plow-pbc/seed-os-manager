@@ -59,7 +59,41 @@ enum AppMode {
         try? out.write(to: outURL, atomically: true, encoding: .utf8)
         try? err.write(to: errURL, atomically: true, encoding: .utf8)
         try? "\(code)\n".write(to: exitURL, atomically: true, encoding: .utf8)
+        appendToAuditLog(script: scriptSource, exit: code, errSummary: err)
         return 0
+    }
+
+    private static func appendToAuditLog(script: String, exit: Int32, errSummary: String) {
+        let logDir = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Logs/Seed OS Manager")
+        try? FileManager.default.createDirectory(at: logDir, withIntermediateDirectories: true)
+        let logURL = logDir.appendingPathComponent("seedctl.log")
+
+        // Rotate at 10 MB.
+        if let attrs = try? FileManager.default.attributesOfItem(atPath: logURL.path),
+           let size = attrs[.size] as? Int64, size > 10 * 1024 * 1024 {
+            let rotated = logDir.appendingPathComponent("seedctl.log.1")
+            try? FileManager.default.removeItem(at: rotated)
+            try? FileManager.default.moveItem(at: logURL, to: rotated)
+        }
+
+        let ts = ISO8601DateFormatter().string(from: Date())
+        let ppid = getppid()
+        let entry = """
+        --- \(ts) ppid=\(ppid) exit=\(exit) ---
+        \(script)
+        \(errSummary.isEmpty ? "" : "stderr: " + errSummary)
+
+        """
+        if let data = entry.data(using: .utf8) {
+            if let handle = try? FileHandle(forWritingTo: logURL) {
+                handle.seekToEndOfFile()
+                handle.write(data)
+                try? handle.close()
+            } else {
+                try? data.write(to: logURL)
+            }
+        }
     }
 
     private static func readTimeout(from url: URL) -> Int {

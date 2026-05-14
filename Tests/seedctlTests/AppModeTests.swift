@@ -29,6 +29,21 @@ final class AppModeTests: XCTestCase {
         XCTAssertEqual(try contents(of: req, file: "exit").trimmingCharacters(in: .whitespacesAndNewlines), "4")
     }
 
+    func testWritesAuditLogEntry() throws {
+        let req = try makeRequest(script: "return 7 * 6", timeout: 30)
+        let logURL = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Logs/Seed OS Manager/seedctl.log")
+
+        let before: Int64 = (try? FileManager.default.attributesOfItem(atPath: logURL.path)[.size] as? Int64) ?? 0
+        _ = AppMode.execute(reqDir: req)
+        let after: Int64 = (try? FileManager.default.attributesOfItem(atPath: logURL.path)[.size] as? Int64) ?? 0
+
+        XCTAssertGreaterThan(after, before)
+        let log = try String(contentsOf: logURL)
+        XCTAssertTrue(log.contains("return 7 * 6"))
+        XCTAssertTrue(log.contains("exit=0"))
+    }
+
     // Helpers
     private func makeRequest(script: String, timeout: Int) throws -> URL {
         let dir = FileManager.default.temporaryDirectory
