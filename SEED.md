@@ -152,6 +152,14 @@ test "$(seedctl osa --stdin <<<'return 1 + 1')" = "2"
 - No proactive TCC prime; first-use prompts each surface mid-flight in
   whatever downstream SEED first reaches for them. Eager-prime alternative
   documented for v2 if user pain warrants it. ^o-eager
+- No per-data-class privacy entitlements (`NSRemindersUsageDescription`,
+  `NSCalendarsUsageDescription`, `NSContactsUsageDescription`,
+  `NSPhotoLibraryUsageDescription`, etc.) in v1. Apple Events to those
+  per-data-class targets return `errAEEventNotPermitted` without a TCC
+  prompt. Plain Automation targets (System Events, Music, Mail, Finder,
+  most other scriptable apps) work normally. SEEDs that need per-data
+  classes can either route via System Events where possible or wait for
+  v2 which adds the per-class declarations. ^o-perdata
 - No universal-binary assertion; authored on arm64. Intel-Mac installs
   unverified. ^o-universal
 - No SHA / signature pin on the downloaded `.dmg`. The agent trusts
