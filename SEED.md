@@ -124,7 +124,7 @@ test "$(seedctl osa --stdin <<<'return 1 + 1')" = "2"
   installs. On Don't Allow, the script returns exit code 1 with stderr
   "Not authorized to send Apple events to <App>."
 - This SEED does NOT pre-prompt for any TCC grant. Priming is intentionally
-  deferred to first use (see [Open](#open)).
+  deferred to first use (see [eager TCC priming](#eager-tcc-priming)).
 
 ## Verify
 
@@ -149,17 +149,22 @@ test "$(seedctl osa --stdin <<<'return 1 + 1')" = "2"
 
 ## Open
 
-- No proactive TCC prime; first-use prompts each surface mid-flight in
-  whatever downstream SEED first reaches for them. Eager-prime alternative
-  documented for v2 if user pain warrants it.
-- No per-data-class privacy entitlements (`NSRemindersUsageDescription`,
-  `NSCalendarsUsageDescription`, `NSContactsUsageDescription`,
-  `NSPhotoLibraryUsageDescription`, etc.) in v1. Apple Events to those
-  per-data-class targets return `errAEEventNotPermitted` without a TCC
-  prompt. Plain Automation targets (System Events, Music, Mail, Finder,
-  most other scriptable apps) work normally. SEEDs that need per-data
-  classes can either route via System Events where possible or wait for
-  v2 which adds the per-class declarations.
+#### Eager TCC priming
+
+No proactive TCC prime; first-use prompts each surface mid-flight in
+whatever downstream SEED first reaches for them. Eager-prime alternative
+documented for v2 if user pain warrants it.
+
+#### Per-data-class privacy entitlements
+
+No per-data-class privacy entitlements (`NSRemindersUsageDescription`,
+`NSCalendarsUsageDescription`, `NSContactsUsageDescription`,
+`NSPhotoLibraryUsageDescription`, etc.) in v1. Apple Events to those
+per-data-class targets return `errAEEventNotPermitted` without a TCC
+prompt. Plain Automation targets (System Events, Music, Mail, Finder,
+most other scriptable apps) work normally. SEEDs that need per-data
+classes can either route via System Events where possible or wait for
+v2 which adds the per-class declarations.
 - No universal-binary assertion; authored on arm64. Intel-Mac installs
   unverified.
 - No SHA / signature pin on the downloaded `.dmg`. The agent trusts
