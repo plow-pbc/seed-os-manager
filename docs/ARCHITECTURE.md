@@ -28,8 +28,8 @@ shell or SSH session called the CLI.
   across CLI invocations and across shell sessions.
 - Per-data-class privacy targets (Reminders, Calendar, Contacts,
   Photos) return `errAEEventNotPermitted` without a TCC prompt because
-  v1's entitlements only declare Automation. See `SEED.md > ## Open >
-  ^o-perdata` for the v2 path.
+  v1's entitlements only declare Automation. See [`## Open` in
+  `SEED.md`](../SEED.md#open) for the v2 path.
 - The arithmetic-only smoke test (`return 1 + 1`) does not touch any
   TCC-protected target and runs silently — used as the install
   acceptance probe in `## Verify`.
