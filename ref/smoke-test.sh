@@ -21,8 +21,12 @@ echo "=> ad-hoc codesign"
 codesign --force --deep --sign - "$SRC"
 
 echo "=> install to /Applications"
+# ditto (not cp -R): BSD cp -R nests source-into-existing-dest, so a re-run
+# could produce /Applications/Seed OS Manager.app/Seed OS Manager.app. The
+# rm -rf keeps the happy path clean; ditto removes the nesting hazard. Mirrors
+# the canonical install block in SEED.md.
 rm -rf "$APP"
-cp -R "$SRC" "$APP"
+ditto "$SRC" "$APP"
 
 echo "=> place /usr/local/bin/seedctl symlink"
 TARGET="$APP/$BIN_REL"
