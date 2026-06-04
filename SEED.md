@@ -29,6 +29,27 @@ APP="/Applications/Seed OS Manager.app"
 LINK="/usr/local/bin/seedctl"
 BIN_REL="Contents/MacOS/seedctl"
 
+# Bundle-identity verification helper. This SEED is the OWNER of the
+# co.plow.seed-os-manager / Team ID 3559PD337Z signing identity, so the
+# trust contract for that bundle lives here. codesign --verify proves the
+# signature is intact; spctl --assess proves macOS accepts the bundle as
+# notarized; the Identifier + TeamIdentifier grep proves the freshly-mounted
+# bundle is *this product*, not some other Apple-signed app shaped like
+# Seed OS Manager.app. Fails loudly on any mismatch.
+verify_bundle_identity() {
+  local bundle="$1" want_id="$2" want_team="$3"
+  codesign --verify --deep --strict --verbose=0 "$bundle" \
+    || { echo "$bundle: codesign verify failed" >&2; exit 1; }
+  spctl --assess --type execute "$bundle" \
+    || { echo "$bundle: Gatekeeper/notarization assessment failed" >&2; exit 1; }
+  local meta
+  meta=$(codesign -d --verbose=2 "$bundle" 2>&1)
+  echo "$meta" | grep -qx "Identifier=$want_id" \
+    || { echo "$bundle: Identifier mismatch (expected $want_id)" >&2; exit 1; }
+  echo "$meta" | grep -qx "TeamIdentifier=$want_team" \
+    || { echo "$bundle: TeamIdentifier mismatch (expected $want_team)" >&2; exit 1; }
+}
+
 # 1. Download the latest production .dmg.
 curl -fSL --retry 3 -o "$DMG" https://plow.co/download/seed-os-manager
 
@@ -44,14 +65,21 @@ MOUNT_POINT=$(hdiutil attach -nobrowse -readonly "$DMG" \
   | awk -F'\t' '/^\/dev\// && $NF ~ /^\/Volumes\// {print $NF; exit}')
 [ -n "$MOUNT_POINT" ] || { echo "could not detect mount point" >&2; exit 1; }
 
-# 4. Replace /Applications/Seed OS Manager.app.
-rm -rf "$APP"
-cp -R "$MOUNT_POINT/Seed OS Manager.app" /Applications/
+# 4. Verify the freshly-mounted bundle's signature, notarization, and EXACT
+#    identity before copying it into /Applications.
+verify_bundle_identity "$MOUNT_POINT/Seed OS Manager.app" "co.plow.seed-os-manager" "3559PD337Z"
 
-# 5. Eject.
+# 5. Replace /Applications/Seed OS Manager.app. ditto (not cp -R): BSD cp -R
+#    nests source-into-existing-dest, so a re-run could produce
+#    /Applications/Seed OS Manager.app/Seed OS Manager.app. The rm -rf above
+#    keeps the happy path clean; ditto removes the nesting hazard entirely.
+rm -rf "$APP"
+ditto "$MOUNT_POINT/Seed OS Manager.app" "$APP"
+
+# 6. Eject.
 hdiutil detach "$MOUNT_POINT"
 
-# 6. Place /usr/local/bin/seedctl symlink. Try unprivileged first.
+# 7. Place /usr/local/bin/seedctl symlink. Try unprivileged first.
 TARGET="$APP/$BIN_REL"
 if ln -sfn "$TARGET" "$LINK" 2>/dev/null; then
   :  # success, no sudo needed (Homebrew-style ownership)
@@ -60,7 +88,7 @@ else
   sudo ln -sfn "$TARGET" "$LINK"
 fi
 
-# 7. Smoke test (no TCC-protected target — pure arithmetic, won't prompt).
+# 8. Smoke test (no TCC-protected target — pure arithmetic, won't prompt).
 test "$(seedctl osa --stdin <<<'return 1 + 1')" = "2"
 ```
 
@@ -91,8 +119,22 @@ test "$(seedctl osa --stdin <<<'return 1 + 1')" = "2"
 
 ### Seed OS Manager.app is replaced
 
-- The install action MUST `pkill -x seedctl` before `cp -R`, then wait
-  up to 5s for the process to exit.
+- The install action MUST `pkill -x seedctl` before the bundle copy, then
+  wait up to 5s for the process to exit.
+- Before copying the freshly-mounted bundle into `/Applications`, the install
+  action MUST verify its signature, notarization, and EXACT identity via
+  `verify_bundle_identity "$MOUNT_POINT/Seed OS Manager.app"
+  co.plow.seed-os-manager 3559PD337Z` (i.e. `codesign --verify --deep
+  --strict`, `spctl --assess --type execute`, and an exact match on
+  `Identifier=co.plow.seed-os-manager` + `TeamIdentifier=3559PD337Z`),
+  failing loudly on any mismatch. This SEED owns that signing identity, so
+  the trust contract lives here.
+- The install action MUST `rm -rf "$APP"` then copy with `ditto`, not
+  `cp -R`: BSD `cp -R src/Seed OS Manager.app /Applications/` nests
+  source-into-existing-dest, producing
+  `/Applications/Seed OS Manager.app/Seed OS Manager.app` when the
+  destination already exists. The `rm -rf` keeps the happy path clean;
+  `ditto` removes the nesting hazard entirely.
 - The install action MUST NOT use `osascript -e 'tell application "Seed
   OS Manager" to quit'`. Self-bootstrap MUST NOT depend on the very
   TCC-gated Apple Events surface this SEED exists to enable.
