@@ -44,9 +44,9 @@ verify_bundle_identity() {
     || { echo "$bundle: Gatekeeper/notarization assessment failed" >&2; exit 1; }
   local meta
   meta=$(codesign -d --verbose=2 "$bundle" 2>&1)
-  echo "$meta" | grep -qx "Identifier=$want_id" \
+  echo "$meta" | grep -qxF "Identifier=$want_id" \
     || { echo "$bundle: Identifier mismatch (expected $want_id)" >&2; exit 1; }
-  echo "$meta" | grep -qx "TeamIdentifier=$want_team" \
+  echo "$meta" | grep -qxF "TeamIdentifier=$want_team" \
     || { echo "$bundle: TeamIdentifier mismatch (expected $want_team)" >&2; exit 1; }
 }
 
