@@ -14,8 +14,10 @@ described in RFC 2119.
 - ≥20 MB free disk (~10 MB .dmg in `$TMPDIR`, ~10 MB extracted bundle).
 - System tools at `/usr/bin/*`: `curl`, `hdiutil`, `open`, `pgrep`, `pkill`,
   `ln`. No install needed.
-- `~/.local/bin` for the `seedctl` symlink — user-writable and on `PATH`; the
-  install block creates it if absent. No `sudo`, ever.
+- `~/.local/bin` for the `seedctl` symlink — user-writable (often, but not
+  guaranteed to be, on `PATH`); the install block creates it if absent and
+  invokes the symlink by absolute path, so nothing here depends on `PATH`. No
+  `sudo`, ever.
 
 Run the following block to install Seed OS Manager. The block is idempotent:
 re-running re-downloads the current artifact, replaces the installed bundle,
@@ -87,7 +89,10 @@ mkdir -p "$(dirname "$LINK")"
 ln -sfn "$TARGET" "$LINK"
 
 # 8. Smoke test (no TCC-protected target — pure arithmetic, won't prompt).
-test "$(seedctl osa --stdin <<<'return 1 + 1')" = "2"
+#    Invoke "$LINK" by absolute path, not bare `seedctl`: this shell may not
+#    have ~/.local/bin on PATH yet, and a stale seedctl earlier on PATH could
+#    false-pass against the wrong binary.
+test "$("$LINK" osa --stdin <<<'return 1 + 1')" = "2"
 ```
 
 ### Requirements
@@ -148,10 +153,11 @@ test "$(seedctl osa --stdin <<<'return 1 + 1')" = "2"
 ### seedctl symlink is placed
 
 - The install action MUST `mkdir -p ~/.local/bin` and place the symlink there
-  with `ln -sfn`. `~/.local/bin` is user-owned and on `PATH`, so the symlink
-  never needs `sudo` — the install stays fully autonomous. (Downstream SEEDs
-  invoke `seedctl` by its absolute bundle path regardless, so the symlink is a
-  CLI convenience, not a load-bearing dependency.)
+  with `ln -sfn`. `~/.local/bin` is user-owned, so the symlink never needs
+  `sudo` — the install stays fully autonomous. (Downstream SEEDs invoke
+  `seedctl` by its absolute bundle path regardless, and the install/smoke
+  probes invoke the symlink by its absolute path too, so the symlink is a
+  PATH-independent CLI convenience, not a load-bearing dependency.)
 
 ### AppleScript is executed
 
@@ -186,7 +192,9 @@ test "$(seedctl osa --stdin <<<'return 1 + 1')" = "2"
    and does the resolved target exist and have the executable bit?
    Expected: yes.
 4. **AppleScript executes end-to-end.** Does
-   `seedctl osa --stdin <<<'return 1 + 1'` exit 0 and print `2`? This
+   `"$HOME/.local/bin/seedctl" osa --stdin <<<'return 1 + 1'` exit 0 and
+   print `2` (invoked by absolute path, not bare `seedctl`, so the probe
+   never depends on ambient `PATH`)? This
    script touches no TCC-protected target, so it MUST succeed without
    triggering any permission prompt. If this step prompts, something is
    misconfigured upstream of TCC.

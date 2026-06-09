@@ -34,7 +34,10 @@ mkdir -p "$(dirname "$LINK")"
 ln -sfn "$TARGET" "$LINK"
 
 echo "=> run smoke test"
-result=$(seedctl osa --stdin <<<'return 1 + 1')
+# Invoke the link by the absolute path we just placed, not bare `seedctl`:
+# a fresh shell may not have ~/.local/bin on PATH yet, and an older seedctl
+# earlier on PATH could false-pass against the wrong binary.
+result=$("$LINK" osa --stdin <<<'return 1 + 1')
 test "$result" = "2" || { echo "FAIL: expected 2, got '$result'"; exit 1; }
 
 echo "ok: smoke test passed"
