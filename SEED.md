@@ -92,6 +92,15 @@ fi
 test "$(seedctl osa --stdin <<<'return 1 + 1')" = "2"
 ```
 
+### Requirements
+
+| kind | label | phase | satisfy | bypass |
+|---|---|---|---|---|
+| hardware | Mac running macOS ≥13.0 | preflight | this machine | |
+| system | ≥20 MB free disk (~10 MB .dmg + ~10 MB bundle) | preflight | free space on the install volume | |
+| system | write access to `/usr/local/bin` for the `seedctl` symlink | in-flow | sudo grant for the symlink | user-writable `/usr/local/bin` (Homebrew-style ownership) — no sudo |
+| auth | macOS Automation grant for the Seed OS Manager TCC principal | in-flow | Allow at the first-use Automation prompt | |
+
 ## Objects
 
 ### Seed OS Manager.app
@@ -168,7 +177,7 @@ test "$(seedctl osa --stdin <<<'return 1 + 1')" = "2"
 - This SEED does NOT pre-prompt for any TCC grant. Priming is intentionally
   deferred to first use (see [eager TCC priming](#eager-tcc-priming)).
 
-## Verify
+## Verification
 
 1. **App bundle present.** Does `/Applications/Seed OS Manager.app`
    exist as a directory containing `Contents/MacOS/seedctl`? Expected: yes.
@@ -189,7 +198,7 @@ test "$(seedctl osa --stdin <<<'return 1 + 1')" = "2"
 
 (default)
 
-## Open
+## Open Items
 
 #### Eager TCC priming
 

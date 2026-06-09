@@ -33,4 +33,4 @@ shell or SSH session called the CLI.
   for the v2 path.
 - The arithmetic-only smoke test (`return 1 + 1`) does not touch any
   TCC-protected target and runs silently — used as the install
-  acceptance probe in `## Verify`.
+  acceptance probe in `## Verification`.
