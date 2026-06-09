@@ -14,8 +14,8 @@ described in RFC 2119.
 - ≥20 MB free disk (~10 MB .dmg in `$TMPDIR`, ~10 MB extracted bundle).
 - System tools at `/usr/bin/*`: `curl`, `hdiutil`, `open`, `pgrep`, `pkill`,
   `ln`. No install needed.
-- Write access to `/usr/local/bin/` for the `seedctl` symlink. The install
-  block detects ownership and asks before invoking `sudo`.
+- `~/.local/bin` for the `seedctl` symlink — user-writable and on `PATH`; the
+  install block creates it if absent. No `sudo`, ever.
 
 Run the following block to install Seed OS Manager. The block is idempotent:
 re-running re-downloads the current artifact, replaces the installed bundle,
@@ -26,7 +26,7 @@ set -euo pipefail
 
 DMG="$TMPDIR/SeedOSManager.dmg"
 APP="/Applications/Seed OS Manager.app"
-LINK="/usr/local/bin/seedctl"
+LINK="$HOME/.local/bin/seedctl"
 BIN_REL="Contents/MacOS/seedctl"
 
 # Bundle-identity verification helper. This SEED is the OWNER of the
@@ -79,14 +79,12 @@ ditto "$MOUNT_POINT/Seed OS Manager.app" "$APP"
 # 6. Eject.
 hdiutil detach "$MOUNT_POINT"
 
-# 7. Place /usr/local/bin/seedctl symlink. Try unprivileged first.
+# 7. Place the seedctl symlink in ~/.local/bin — user-owned and on PATH, so
+#    the install never needs sudo. mkdir -p creates the dir on a Mac that
+#    doesn't have it yet.
 TARGET="$APP/$BIN_REL"
-if ln -sfn "$TARGET" "$LINK" 2>/dev/null; then
-  :  # success, no sudo needed (Homebrew-style ownership)
-else
-  echo "Symlinking $LINK requires sudo (Apple-default /usr/local/bin perms)."
-  sudo ln -sfn "$TARGET" "$LINK"
-fi
+mkdir -p "$(dirname "$LINK")"
+ln -sfn "$TARGET" "$LINK"
 
 # 8. Smoke test (no TCC-protected target — pure arithmetic, won't prompt).
 test "$(seedctl osa --stdin <<<'return 1 + 1')" = "2"
@@ -98,7 +96,6 @@ test "$(seedctl osa --stdin <<<'return 1 + 1')" = "2"
 |---|---|---|---|---|
 | hardware | Mac running macOS ≥13.0 | preflight | this machine | |
 | system | ≥20 MB free disk (~10 MB .dmg + ~10 MB bundle) | preflight | free space on the install volume | |
-| system | write access to `/usr/local/bin` for the `seedctl` symlink | in-flow | sudo grant for the symlink | user-writable `/usr/local/bin` (Homebrew-style ownership) — no sudo |
 | auth | macOS Automation grant for the Seed OS Manager TCC principal | in-flow | Allow at the first-use Automation prompt | |
 
 ## Objects
@@ -113,7 +110,7 @@ test "$(seedctl osa --stdin <<<'return 1 + 1')" = "2"
 
 ### seedctl
 
-- The CLI entry point at `/usr/local/bin/seedctl` (a symlink into the
+- The CLI entry point at `~/.local/bin/seedctl` (a symlink into the
   .app's `Contents/MacOS/seedctl`). One static binary serves both CLI
   mode (when `argv[0]` resolves to `seedctl`) and .app mode (when launched
   by launchd via `open -a`).
@@ -150,11 +147,11 @@ test "$(seedctl osa --stdin <<<'return 1 + 1')" = "2"
 
 ### seedctl symlink is placed
 
-- The install action MUST attempt unprivileged `ln -sfn` first; on EPERM
-  the action MUST display the `sudo` command in full and obtain user
-  confirmation before re-running with `sudo`. (The SEED convention's
-  per-block trust gate already requires this for any shell block; the
-  `sudo` path is just one such block.)
+- The install action MUST `mkdir -p ~/.local/bin` and place the symlink there
+  with `ln -sfn`. `~/.local/bin` is user-owned and on `PATH`, so the symlink
+  never needs `sudo` — the install stays fully autonomous. (Downstream SEEDs
+  invoke `seedctl` by its absolute bundle path regardless, so the symlink is a
+  CLI convenience, not a load-bearing dependency.)
 
 ### AppleScript is executed
 
@@ -184,7 +181,7 @@ test "$(seedctl osa --stdin <<<'return 1 + 1')" = "2"
 2. **Bundle ID is the expected TCC principal.** Does
    `defaults read "/Applications/Seed OS Manager.app/Contents/Info"
    CFBundleIdentifier` print exactly `co.plow.seed-os-manager`? Expected: yes.
-3. **CLI symlink resolves.** Does `readlink /usr/local/bin/seedctl`
+3. **CLI symlink resolves.** Does `readlink "$HOME/.local/bin/seedctl"`
    print a path ending in `/Seed OS Manager.app/Contents/MacOS/seedctl`,
    and does the resolved target exist and have the executable bit?
    Expected: yes.
@@ -221,7 +218,7 @@ v2 which adds the per-class declarations.
 - No SHA / signature pin on the downloaded `.dmg`. The agent trusts
   plow.co's TLS chain plus macOS's notarization gate at first launch.
 - No uninstall action. To remove: `rm -rf "/Applications/Seed OS Manager.app"
-  /usr/local/bin/seedctl` and revoke grants under System Settings →
+  ~/.local/bin/seedctl` and revoke grants under System Settings →
   Privacy & Security → Automation.
 
 ## Non-Goals

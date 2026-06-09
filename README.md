@@ -13,7 +13,7 @@ The on-disk surface is exactly two things:
 
 - `/Applications/Seed OS Manager.app` — the signed, notarized .app bundle
   that holds the TCC grants.
-- `/usr/local/bin/seedctl` — a symlink into the bundle's CLI entry point.
+- `~/.local/bin/seedctl` — a symlink into the bundle's CLI entry point.
 
 The CLI exposes a single verb, `seedctl osa`, which executes a user-supplied
 AppleScript. SEEDs supply the script.
