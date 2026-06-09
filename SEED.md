@@ -97,6 +97,7 @@ test "$(seedctl osa --stdin <<<'return 1 + 1')" = "2"
 | kind | label | phase | satisfy | bypass |
 |---|---|---|---|---|
 | hardware | Mac running macOS ≥13.0 | preflight | this machine | |
+| system | ≥20 MB free disk (~10 MB .dmg + ~10 MB bundle) | preflight | free space on the install volume | |
 | system | write access to `/usr/local/bin` for the `seedctl` symlink | in-flow | sudo grant for the symlink | user-writable `/usr/local/bin` (Homebrew-style ownership) — no sudo |
 | auth | macOS Automation grant for the Seed OS Manager TCC principal | in-flow | Allow at the first-use Automation prompt | |
 
