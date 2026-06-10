@@ -81,9 +81,9 @@ ditto "$MOUNT_POINT/Seed OS Manager.app" "$APP"
 # 6. Eject.
 hdiutil detach "$MOUNT_POINT"
 
-# 7. Place the seedctl symlink in ~/.local/bin — user-owned and on PATH, so
-#    the install never needs sudo. mkdir -p creates the dir on a Mac that
-#    doesn't have it yet.
+# 7. Place the seedctl symlink in ~/.local/bin — user-owned, so the install
+#    never needs sudo. mkdir -p creates the dir on a Mac that doesn't have
+#    it yet.
 TARGET="$APP/$BIN_REL"
 mkdir -p "$(dirname "$LINK")"
 ln -sfn "$TARGET" "$LINK"
