@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # End-to-end smoke test. Bundles seedctl, ad-hoc signs it (so /usr/bin/open
 # can launch it on this machine without notarization), places the bundle
-# under /Applications, places a /usr/local/bin symlink, and runs the
+# under /Applications, places a ~/.local/bin symlink, and runs the
 # arithmetic-only AppleScript. No TCC prompts will be involved because
 # the script touches no other app.
 
@@ -11,7 +11,7 @@ cd "$(dirname "$0")/.."
 "$PWD/ref/bundle.sh"
 
 APP="/Applications/Seed OS Manager.app"
-LINK="/usr/local/bin/seedctl"
+LINK="$HOME/.local/bin/seedctl"
 SRC="$PWD/dist/Seed OS Manager.app"
 BIN_REL="Contents/MacOS/seedctl"
 
@@ -28,17 +28,16 @@ echo "=> install to /Applications"
 rm -rf "$APP"
 ditto "$SRC" "$APP"
 
-echo "=> place /usr/local/bin/seedctl symlink"
+echo "=> place ~/.local/bin/seedctl symlink"
 TARGET="$APP/$BIN_REL"
-if ln -sfn "$TARGET" "$LINK" 2>/dev/null; then
-  :
-else
-  echo "   sudo required for $LINK"
-  sudo ln -sfn "$TARGET" "$LINK"
-fi
+mkdir -p "$(dirname "$LINK")"
+ln -sfn "$TARGET" "$LINK"
 
 echo "=> run smoke test"
-result=$(seedctl osa --stdin <<<'return 1 + 1')
+# Invoke the link by the absolute path we just placed, not bare `seedctl`:
+# a fresh shell may not have ~/.local/bin on PATH yet, and an older seedctl
+# earlier on PATH could false-pass against the wrong binary.
+result=$("$LINK" osa --stdin <<<'return 1 + 1')
 test "$result" = "2" || { echo "FAIL: expected 2, got '$result'"; exit 1; }
 
 echo "ok: smoke test passed"
