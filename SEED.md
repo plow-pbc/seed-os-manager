@@ -101,7 +101,7 @@ test "$("$LINK" osa --stdin <<<'return 1 + 1')" = "2"
 |---|---|---|---|---|
 | hardware | Mac running macOS ≥13.0 | preflight | this machine | |
 | system | ≥20 MB free disk (~10 MB .dmg + ~10 MB bundle) | preflight | free space on the install volume | |
-| auth | macOS Automation grant for the Seed OS Manager TCC principal | in-flow | Allow at the first-use Automation prompt | |
+| auth | macOS Automation grant for the Seed OS Manager TCC principal | in-flow | Allow at the first-use Automation prompt | grant already present from an earlier install or out-of-band approval (System Settings → Privacy & Security → Automation) |
 
 ## Objects
 
@@ -177,6 +177,12 @@ test "$("$LINK" osa --stdin <<<'return 1 + 1')" = "2"
   OS Manager". On Allow, the grant is durable across reboots and SEED
   installs. On Don't Allow, the script returns exit code 1 with stderr
   "Not authorized to send Apple events to <App>."
+- If a grant for the target already exists under the
+  `co.plow.seed-os-manager` principal (durable from an earlier install, or
+  made out-of-band in System Settings → Privacy & Security → Automation),
+  no prompt appears: the call MUST succeed silently. A pre-existing grant
+  is an expected success state; install and verification MUST NOT fork or
+  abort on it.
 - This SEED does NOT pre-prompt for any TCC grant. Priming is intentionally
   deferred to first use (see [eager TCC priming](#eager-tcc-priming)).
 
