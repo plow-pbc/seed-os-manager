@@ -180,8 +180,9 @@ test "$("$LINK" osa --stdin <<<'return 1 + 1')" = "2"
 - If a grant for the target already exists under the
   `co.plow.seed-os-manager` principal (durable from an earlier install, or
   made out-of-band in System Settings → Privacy & Security → Automation),
-  no prompt appears: the call MUST succeed silently. A pre-existing grant
-  is an expected success state; install and verification MUST NOT fork or
+  no prompt appears and the Apple Event is authorized silently — the call
+  proceeds exactly as if the grant had just been made. A pre-existing
+  grant is an expected state; install and verification MUST NOT fork or
   abort on it.
 - This SEED does NOT pre-prompt for any TCC grant. Priming is intentionally
   deferred to first use (see [eager TCC priming](#eager-tcc-priming)).
